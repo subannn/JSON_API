@@ -3,13 +3,15 @@ package main
 import (
 	"bytes"
 	"database/sql"
+	"encoding/json"
 	"fmt"
-	"log"
+	"io/ioutil"
 	"net/http"
-	"text/template"
 
-	_ "github.com/lib/pq"
+	_"github.com/lib/pq"
 )
+
+var DB *sql.DB
 
 
 const (
@@ -20,74 +22,32 @@ const (
 	dbname   = "go_crud"
 )
 
-func home_page(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hello World")
+type UserUpd struct { 
+	Id string 	   `json:"id"` 
+	Name  string   `json:"name"` 
+	Surname string `json:"surname"` 
+	Mail string	   `json:"mail"` 
+	Phone string   `json:"phone"` 
+	Password string`json:"password"` 
 }
 
-func second_page(w http.ResponseWriter, r *http.Request) {
-	tmpl, err := template.ParseFiles("templates/suban_page.html")
-	CheckError(err)
-	
-	tmpl.Execute(w, nil)
+type User struct { 
+	Name  string   `json:"name"` 
+	Surname string `json:"surname"` 
+	Mail string	   `json:"mail"` 
+	Phone string   `json:"phone"` 
+	Password string`json:"password"` 
 }
 
-func delate(w http.ResponseWriter, r *http.Request) {
-	id := r.FormValue("id")
-	DelateInDB(id)
-}
-func DelateInDB(id string) {
-	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
-
-	db, err := sql.Open("postgres", psqlInfo)
-	CheckError(nil)
-	defer db.Close()
-
-	err = db.Ping()
-	CheckError(err)
-
-	_, err = db.Exec("DELETE FROM users WHERE id = $1", id)
-	CheckError(err)
-}
-
-func save(w http.ResponseWriter, r *http.Request) {
-	name := r.FormValue("fname")
-	surname := r.FormValue("lname")
-	mail := r.FormValue("mail")
-	phone := r.FormValue("phone")
-	pass := r.FormValue("pass")
-	SaveInDB(name, surname, mail, phone, pass)
-}
-
-func SaveInDB(name, surname, mail, phone, pass string) {
-	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
-
-	db, err := sql.Open("postgres", psqlInfo)
-	CheckError(nil)
-	defer db.Close()
-
-	err = db.Ping()
-	CheckError(err)
-
-	_, err = db.Exec("INSERT INTO users(fname, lname, mail, pnumber, pass) VALUES ($1, $2, $3, $4, $5)", name, surname, mail, phone, pass)
-	CheckError(err)
-}
-
-func showtable(w http.ResponseWriter, r *http.Request) {
-	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
-
-	db, err := sql.Open("postgres", psqlInfo)
-	CheckError(nil)
-	defer db.Close()
-
-	err = db.Ping()
-	CheckError(err)
-
-	rows, err := db.Query("SELECT * FROM users")
+func tableGet(w http.ResponseWriter, r *http.Request) {  
+	if r.Method != http.MethodGet {
+		panic("Wrong HTTP method.")
+	}   
+	rows, err := DB.Query("SELECT * FROM users")
 	CheckError(err)
 
 	defer rows.Close()
 
-	
 	var buf bytes.Buffer
 	for rows.Next() {
 		var id int
@@ -97,87 +57,139 @@ func showtable(w http.ResponseWriter, r *http.Request) {
 		var pnumber string
 		var pass string
     	if err := rows.Scan(&id, &name, &surname, &mail, &pnumber, &pass); err != nil {
-       		log.Fatal(err)
+       		CheckError(err)
     	}
     	buf.WriteString(fmt.Sprintf("%d: %s: %s: %s: %s: %s\n", id, name, surname, mail, pnumber, pass))
 	}
 	if err := rows.Err(); err != nil {
-    	log.Fatal(err)
+		CheckError(err)
 	}
-	fmt.Fprint(w, buf.String())
+
+	fmt.Fprint(w, buf.String())			
 }
 
-func edit(w http.ResponseWriter, r *http.Request) {
-	id := r.FormValue("id")
-	name := r.FormValue("fname")
-	surname := r.FormValue("lname")
-	mail := r.FormValue("mail")
-	phone := r.FormValue("phone")
-	pass := r.FormValue("pass")
-	EditDB(id, name, surname, mail, phone, pass)
-}
+func jsonGet(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		panic("Wrong HTTP method.")
+	}
+	
+	var u User
 
-func EditDB(id, name, surname, mail, phone, pass string) {
-	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
-
-	db, err := sql.Open("postgres", psqlInfo)
-	CheckError(nil)
-	defer db.Close()
-
-	err = db.Ping()
+	body, err := ioutil.ReadAll(r.Body)
 	CheckError(err)
 
-	if(name != "") {
-		_, err = db.Exec("UPDATE users SET fname=$2 WHERE id=$1", id, name)
-		CheckError(err)
-	}
+	var id string
 
-	if(surname != "") {
-		_, err = db.Exec("UPDATE users SET lname=$2 WHERE id=$1", id, surname)
-		CheckError(err)
-	}
+	err = json.Unmarshal(body, &id)
+	CheckError(err)
 
-	if(mail != "") {
-		_, err = db.Exec("UPDATE users SET mail=$2 WHERE id=$1", id, mail)
-		CheckError(err)
-	}
+	psqlInfo := fmt.Sprintf("SELECT * FROM users WHERE id=%s", id)
+	CheckError(err)
 
-	if(phone != "") {
-		_, err = db.Exec("UPDATE users SET phone=$2 WHERE id=$1", id, phone)
-		CheckError(err)
-	}
+	rows, err := DB.Query(psqlInfo)
+	CheckError(err)
 
-	if(pass != "") {
-		_, err = db.Exec("UPDATE users SET pass=$2 WHERE id=$1", id, pass)
-		CheckError(err)
+	for rows.Next() {
+		var name string
+    	var surname string
+		var mail string
+		var phone string
+		var password string
+		if err := rows.Scan(&id, &name, &surname, &mail, &phone, &password); err != nil {
+			CheckError(err)
+		}
+		u.Name = name
+		u.Surname = surname
+		u.Mail = mail
+		u.Phone = phone
+		u.Password = password
+	
 	}
+	
+	jsonU,err := json.Marshal(u)
+	CheckError(err)
+	
+	fmt.Fprint(w, string(jsonU))
+
+
+	
 }
 
+func jsonPost(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		panic("Wrong HTTP method.")
+	} 
 
+    var u User
 
+    body, err := ioutil.ReadAll(r.Body)
+	CheckError(err)
 
+    err = json.Unmarshal(body, &u)
+    CheckError(err)
+	
+	_, err = DB.Exec("INSERT INTO users(name, surname, mail, phone, password) VALUES ($1, $2, $3, $4, $5)", u.Name, u.Surname, u.Mail, u.Phone, u.Password)
+	CheckError(err)
+}
+func jsonPut(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPut {
+		panic("Wrong HTTP method.")
+	}
 
+	var u UserUpd
 
-func handleRequest() {
-	http.HandleFunc("/", home_page)
+	body, err := ioutil.ReadAll(r.Body)
+	CheckError(err)
 
-	http.HandleFunc("/second_page/", second_page)
-	http.HandleFunc("/second_page", second_page)
+	err = json.Unmarshal(body, &u)
+    CheckError(err)
+	fmt.Println(u)
+	
 
-	http.HandleFunc("/save", save)
+	_, err = DB.Exec("UPDATE users SET name=$2 , surname=$3, mail=$4 , phone=$5 , password=$6 WHERE id=$1", u.Id, u.Surname, u.Mail, u.Phone, u.Password)
+	if err != nil{
+		panic(err)
+	}
+	
+}
 
-	http.HandleFunc("/delate", delate)
+func jsonDelate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		panic("Wrong HTTP method.")
+	}   
 
-	http.HandleFunc("/showtable", showtable)
+	body, err := ioutil.ReadAll(r.Body)
+	CheckError(err)
 
-	http.HandleFunc("/edit", edit)
+	var id string
 
-	http.ListenAndServe(":8080", nil)
+	err = json.Unmarshal(body, &id)
+	CheckError(err)
+
+	_, err = DB.Exec("DELETE FROM users WHERE id = $1", id)
+	CheckError(err)
+
 }
 
 func main() {
-	handleRequest()
+	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
 
+	db, err := sql.Open("postgres", psqlInfo)
+	CheckError(err)
+
+	DB = db
+
+	defer db.Close()
+	http.HandleFunc("/jsonPost", jsonPost) 
+
+	http.HandleFunc("/tableGet", tableGet)
+	http.HandleFunc("/jsonGetByID", jsonGet)
+
+	http.HandleFunc("/jsonPut", jsonPut)
+
+	http.HandleFunc("/jsonDelate", jsonDelate) 
+
+	http.ListenAndServe(":8080", nil)
 }
 func CheckError(err error) {
 	if(err != nil) {
