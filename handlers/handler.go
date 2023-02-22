@@ -13,7 +13,6 @@ import (
 	db "../DB"
 )
 
-
 type UserUpd struct { 
 	Id string 	   `json:"id"` 
 	Name  string   `json:"name"` 
@@ -117,10 +116,10 @@ func JsonPost(w http.ResponseWriter, r *http.Request) {
     err = json.Unmarshal(body, &u)
     CheckError(err)
 
-	hash, err := bcrypt.GenerateFromPassword([]byte(u.Password), 20)
+	CryptedHash, err := bcrypt.GenerateFromPassword([]byte(u.Password), 20)
 	CheckError(err)
 	
-	_, err = db.DB.Exec("INSERT INTO users(name, surname, mail, phone, password) VALUES ($1, $2, $3, $4, $5)", u.Name, u.Surname, u.Mail, u.Phone, hash)
+	_, err = db.DB.Exec("INSERT INTO users(name, surname, mail, phone, password) VALUES ($1, $2, $3, $4, $5)", u.Name, u.Surname, u.Mail, u.Phone, CryptedHash)
 	CheckError(err)
 }
 func JsonPut(w http.ResponseWriter, r *http.Request) {
@@ -136,10 +135,10 @@ func JsonPut(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal(body, &u)
     CheckError(err)
 	
-	hash, err := bcrypt.GenerateFromPassword([]byte(u.Password), 20)
+	CryptedHash, err := bcrypt.GenerateFromPassword([]byte(u.Password), 5)
 	CheckError(err)
 
-	_, err = db.DB.Exec("UPDATE users SET name=$2 , surname=$3, mail=$4 , phone=$5 , password=$6 WHERE id=$1", u.Id, u.Surname, u.Mail, u.Phone, hash)
+	_, err = db.DB.Exec("UPDATE users SET name=$2 , surname=$3, mail=$4 , phone=$5 , password=$6 WHERE id=$1", u.Id, u.Name, u.Surname, u.Mail, u.Phone, CryptedHash)
 	if err != nil{
 		panic(err)
 	}
