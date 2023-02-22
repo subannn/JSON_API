@@ -116,7 +116,7 @@ func JsonPost(w http.ResponseWriter, r *http.Request) {
     err = json.Unmarshal(body, &u)
     CheckError(err)
 
-	CryptedHash, err := bcrypt.GenerateFromPassword([]byte(u.Password), 20)
+	CryptedHash, err := bcrypt.GenerateFromPassword([]byte(u.Password), 5)
 	CheckError(err)
 	
 	_, err = db.DB.Exec("INSERT INTO users(name, surname, mail, phone, password) VALUES ($1, $2, $3, $4, $5)", u.Name, u.Surname, u.Mail, u.Phone, CryptedHash)
