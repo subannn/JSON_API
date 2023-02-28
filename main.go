@@ -11,7 +11,7 @@ import (
 
 	//"golang.org/x/crypto/bcrypt"
 
-	hndl "./handlers"
+	hndl "./requests"
 	db "./DB"
 
 )
