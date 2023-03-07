@@ -1,19 +1,14 @@
 package main
 
 import (
-	//"bytes"
-	// "database/sql"
-	// "encoding/json"
-	// "fmt"
-	// "io/ioutil"
+	"log"
 	"net/http"
+
+	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
 
-	//"golang.org/x/crypto/bcrypt"
-
-	hndl "./requests"
-	db "./DB"
-
+	db "suba/example/db"
+	rgst "suba/example/requests"
 )
 
 func main() {
@@ -21,15 +16,16 @@ func main() {
 	db.OpenDB()
 	defer db.DB.Close()
 
-	http.HandleFunc("/jsonPost", hndl.JsonPost) 
+	r := mux.NewRouter()
 
-	http.HandleFunc("/tableGet", hndl.TableGet)
 
-	http.HandleFunc("/jsonGetByID", hndl.JsonGet)
+	r.HandleFunc("/jsonPost", rgst.JsonPost).Methods("POST")
+	r.HandleFunc("/tableGet", rgst.TableGet).Methods("GET")
+	r.HandleFunc("/jsonGet/{id}", rgst.JsonGet).Methods("GET")
+	r.HandleFunc("/jsonPut", rgst.JsonPut).Methods("PUT")
+	r.HandleFunc("/Delete/{id}", rgst.Delete).Methods("DELETE")
 
-	http.HandleFunc("/jsonPut", hndl.JsonPut)
 
-	http.HandleFunc("/jsonDelate", hndl.JsonDelate) 
+	log.Fatal(http.ListenAndServe(":8080", r))
 
-	http.ListenAndServe(":8080", nil)
-}	
+}
