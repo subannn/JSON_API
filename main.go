@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
@@ -11,21 +12,28 @@ import (
 	rgst "suba/example/requests"
 )
 
+
 func main() {
 
 	db.OpenDB()
 	defer db.DB.Close()
 
-	r := mux.NewRouter()
+	router := mux.NewRouter()
 
+	router.HandleFunc("/jsonPost", rgst.JsonPost).Methods("POST")
+	router.HandleFunc("/tableGet", rgst.TableGet).Methods("GET")
+	router.HandleFunc("/jsonGet/{id}", rgst.JsonGet).Methods("GET")
+	router.HandleFunc("/jsonPut", rgst.JsonPut).Methods("PUT")
+	router.HandleFunc("/Delete/{id}", rgst.Delete).Methods("DELETE")
 
-	r.HandleFunc("/jsonPost", rgst.JsonPost).Methods("POST")
-	r.HandleFunc("/tableGet", rgst.TableGet).Methods("GET")
-	r.HandleFunc("/jsonGet/{id}", rgst.JsonGet).Methods("GET")
-	r.HandleFunc("/jsonPut", rgst.JsonPut).Methods("PUT")
-	r.HandleFunc("/Delete/{id}", rgst.Delete).Methods("DELETE")
-
-
-	log.Fatal(http.ListenAndServe(":8080", r))
+	server := &http.Server {
+		Handler:      router,
+		Addr: 		  "127.0.0.1:8000",
+		ReadTimeout:  15 * time.Second,
+        WriteTimeout: 15 * time.Second,
+		// MaxHeaderBytes: 1 << 20,
+	}
+	
+	log.Fatal(server.ListenAndServe())
 
 }
