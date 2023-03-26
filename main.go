@@ -8,8 +8,8 @@ import (
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
 
-	db "suba/example/db"
-	rgst "suba/example/requests"
+	db "suba/dependencies/db"
+	rgst "suba/dependencies/requests"
 )
 
 

@@ -7,11 +7,11 @@ import (
 	"net/http"
 	"github.com/gorilla/mux"
 
-	_ "github.com/lib/pq"	
+	_ "github.com/lib/pq"
 
 	"golang.org/x/crypto/bcrypt"
 
-	db "suba/example/db"
+	db "suba/dependencies/db"
 )
 
 type UserUpd struct {

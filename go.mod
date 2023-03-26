@@ -1,4 +1,4 @@
-module suba/example
+module suba/dependencies
 
 go 1.19
 
