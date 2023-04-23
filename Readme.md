@@ -1,1 +1,1 @@
-CRUD, HTTP, Postrgresql, bcrypt
+
