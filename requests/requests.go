@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"github.com/gorilla/mux"
 
-	_ "github.com/lib/pq"
+	_"github.com/lib/pq"
 
 	"golang.org/x/crypto/bcrypt"
 
@@ -39,6 +39,7 @@ func TableGet(w http.ResponseWriter, r *http.Request) {
 	defer rows.Close()
 
 	var buf bytes.Buffer
+
 	for rows.Next() {
 		var id int
 		var name string
