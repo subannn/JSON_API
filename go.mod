@@ -1,4 +1,4 @@
-module suba/dependencies
+module dependencies
 
 go 1.19
 

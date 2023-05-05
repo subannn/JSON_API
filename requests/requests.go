@@ -11,7 +11,7 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
-	db "suba/dependencies/db"
+	db "dependencies/db"
 )
 
 type UserUpd struct {
